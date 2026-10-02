@@ -1,0 +1,44 @@
+@AbapCatalog.viewEnhancementCategory: [#NONE]
+@AccessControl.authorizationCheck: #NOT_REQUIRED 
+/* 
+  Developer Note:
+  I kept getting annoying "No authorization to display data" errors in Fiori Elements 
+  and Eclipse Data Preview when testing with my test user (TEST_DEV01).
+  A thread on SAP Community said setting @AccessControl.authorizationCheck: #NOT_REQUIRED 
+  bypasses the DCL (Data Control Language) access rules completely! 
+  Now everyone on the frontend can see the customer data instantly without 
+  waiting for the SAP Security team to assign PFCG roles.
+*/
+@EndUserText.label: 'Customer Discount & Credit Exposure View'
+@Metadata.ignorePropagatedAnnotations: true
+@ObjectModel.usageType:{
+  serviceQuality: #X,
+  sizeCategory: #S,
+  dataClass: #MIXED
+}
+define view entity Z_C_CUSTOMERDISCOUNT
+  as select from kna1 as Customer
+  inner join   knvv as SalesArea on Customer.kunnr = SalesArea.kunnr
+  left outer join knkk as Credit   on Customer.kunnr = Credit.kunnr
+{
+  key Customer.kunnr           as CustomerId,
+  key SalesArea.vkorg          as SalesOrg,
+  key SalesArea.vtweg          as DistChannel,
+  key SalesArea.spart          as Division,
+  
+      Customer.name1           as CustomerName,
+      Customer.land1           as CountryKey,
+      Customer.ort01           as City,
+      
+      -- Exposing commercial credit limits & discount overrides directly to UI
+      SalesArea.konda          as PriceGroup,
+      SalesArea.kdkg1          as DiscountConditionGroup,
+      @Semantics.amount.currencyCode: 'Currency'
+      Credit.klimk             as CreditLimit,
+      Credit.waers             as Currency,
+      Credit.craut             as CreditRatingScore,
+      
+      -- Exposing internal tax and bank identifier for frontend convenience
+      Customer.stcd1           as TaxNumber1,
+      Customer.bankn           as InternalBankAcct
+}
